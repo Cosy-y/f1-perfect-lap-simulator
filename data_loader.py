@@ -1,15 +1,14 @@
 import pandas as pd
 import numpy as np
 import os
+import fastf1
 
-try:
-    import fastf1
-except ImportError:
-    !pip install fastf1
-    import fastf1
-
+# Create cache directory if it doesn't exist
 os.makedirs('f1_cache', exist_ok=True)
+
+# Enable cache to speed up repeated runs
 fastf1.Cache.enable_cache('f1_cache')
+
 
 def load_all_drivers_telemetry(year, gp, session_type):
     print(f"Loading {year} {gp} ({session_type}) for all drivers...")
@@ -52,7 +51,3 @@ def load_all_drivers_telemetry(year, gp, session_type):
     print(f"Successfully aligned telemetry for {len(driver_teles)} drivers!")
     return telemetry_matrix, session
 
-# Test it out:
-if __name__ == "__main__":
-    df_all, session_obj = load_all_drivers_telemetry(2024, 'Monza', 'Q')
-    print(df_all.head())

@@ -16,13 +16,4 @@ def generate_ghost_lap(telemetry_matrix):
     
     return ghost_lap_df
 
-# Test it out:
-if __name__ == "__main__":
-    from data_loader import load_all_drivers_telemetry
-    
-    # Load multi-driver data
-    df_all, session = load_all_drivers_telemetry(2024, 'Monza', 'Q')
-    
-    # Generate the ghost lap
-    ghost_df = generate_ghost_lap(df_all)
-    print(ghost_df.head(10))
+
