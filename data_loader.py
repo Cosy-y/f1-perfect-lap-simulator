@@ -11,25 +11,31 @@ fastf1.Cache.enable_cache('f1_cache')
 
 def load_and_normalize_telemetry(year, gp, session_type, driver_1_code, driver_2_code):
     print(f"Loading {year} {gp} ({session_type})...")
+    
+    # Load session safely
     session = fastf1.get_session(year, gp, session_type)
     session.load(telemetry=True, laps=True, weather=False, messages=False)
 
-    # Get fastest laps for both drivers
-    d1_lap = session.laps.pick_driver(driver_1_code).pick_fastest()
-    d2_lap = session.laps.pick_driver(driver_2_code).pick_fastest()
+    # Pick laps with error handling if a driver didn't set a time
+    try:
+        d1_lap = session.laps.pick_driver(driver_1_code).pick_fastest()
+        d2_lap = session.laps.pick_driver(driver_2_code).pick_fastest()
+    except Exception as e:
+        raise ValueError(f"Could not find valid laps for {driver_1_code} or {driver_2_code} in {year} {gp} {session_type}. Details: {e}")
 
-    # Extract telemetry arrays
+    # Check if laps are empty
+    if d1_lap.empty or d2_lap.empty:
+        raise ValueError("One of the selected drivers has no recorded lap data for this session.")
+
     d1_tel = d1_lap.get_telemetry()
     d2_tel = d2_lap.get_telemetry()
 
     max_distance = min(d1_tel['Distance'].max(), d2_tel['Distance'].max())
     distance_grid = np.arange(0, max_distance, 5) # 5-meter intervals
 
-    # Interpolate data across the uniform distance grid
     d1_speed_interp = np.interp(distance_grid, d1_tel['Distance'], d1_tel['Speed'])
     d2_speed_interp = np.interp(distance_grid, d2_tel['Distance'], d2_tel['Speed'])
 
-    # Bundle into a clean DataFrame
     comparison_df = pd.DataFrame({
         'Distance': distance_grid,
         f'{driver_1_code}_Speed': d1_speed_interp,
