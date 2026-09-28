@@ -1,6 +1,6 @@
+import os
 import pandas as pd
 import numpy as np
-import os
 import fastf1
 
 # Create cache directory if it doesn't exist
@@ -8,6 +8,35 @@ os.makedirs('f1_cache', exist_ok=True)
 
 # Enable cache to speed up repeated runs
 fastf1.Cache.enable_cache('f1_cache')
+
+def load_and_normalize_telemetry(year, gp, session_type, driver_1_code, driver_2_code):
+    print(f"Loading {year} {gp} ({session_type})...")
+    session = fastf1.get_session(year, gp, session_type)
+    session.load(telemetry=True, laps=True, weather=False, messages=False)
+
+    # Get fastest laps for both drivers
+    d1_lap = session.laps.pick_driver(driver_1_code).pick_fastest()
+    d2_lap = session.laps.pick_driver(driver_2_code).pick_fastest()
+
+    # Extract telemetry arrays
+    d1_tel = d1_lap.get_telemetry()
+    d2_tel = d2_lap.get_telemetry()
+
+    max_distance = min(d1_tel['Distance'].max(), d2_tel['Distance'].max())
+    distance_grid = np.arange(0, max_distance, 5) # 5-meter intervals
+
+    # Interpolate data across the uniform distance grid
+    d1_speed_interp = np.interp(distance_grid, d1_tel['Distance'], d1_tel['Speed'])
+    d2_speed_interp = np.interp(distance_grid, d2_tel['Distance'], d2_tel['Speed'])
+
+    # Bundle into a clean DataFrame
+    comparison_df = pd.DataFrame({
+        'Distance': distance_grid,
+        f'{driver_1_code}_Speed': d1_speed_interp,
+        f'{driver_2_code}_Speed': d2_speed_interp
+    })
+
+    return comparison_df, d1_lap, d2_lap
 
 
 def load_all_drivers_telemetry(year, gp, session_type):
@@ -43,11 +72,10 @@ def load_all_drivers_telemetry(year, gp, session_type):
     # Create a base dataframe with our distance checkpoints
     telemetry_matrix = pd.DataFrame({'Distance': distance_grid})
 
-    # Interpolate each driver's speed profile onto the unified distance grid                                
+    # Interpolate each driver's speed profile onto the unified distance grid
     for driver, tel in driver_teles.items():
         speed_interp = np.interp(distance_grid, tel['Distance'], tel['Speed'])
         telemetry_matrix[f'{driver}_Speed'] = speed_interp
 
     print(f"Successfully aligned telemetry for {len(driver_teles)} drivers!")
     return telemetry_matrix, session
-
