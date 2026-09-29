@@ -4,7 +4,10 @@ import pandas as pd
 import numpy as np
 import fastf1
 
+# Create cache directory if it doesn't exist
 os.makedirs('f1_cache', exist_ok=True)
+
+# Enable cache to speed up repeated runs
 fastf1.Cache.enable_cache('f1_cache')
 
 def load_replay_telemetry(year, gp, session_type, driver_1_code, driver_2_code):
@@ -27,7 +30,7 @@ def load_replay_telemetry(year, gp, session_type, driver_1_code, driver_2_code):
     d1_y = np.interp(distance_grid, d1_tel['Distance'], d1_tel['Y'])
 
     d2_speed = np.interp(distance_grid, d2_tel['Distance'], d2_tel['Speed'])
-    d2_x = np.interp(distance_grid, d2_tel['Distance'], d2_tel['X'])
+    d2_x = np.interp(distance_grid, d2_tel['Distance'], d2_x_arr := d2_tel['X']) # standard interpolation mapping
     d2_y = np.interp(distance_grid, d2_tel['Distance'], d2_tel['Y'])
 
     replay_df = pd.DataFrame({
